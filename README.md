@@ -18,12 +18,12 @@ class my_task : public thread_pool::task {
     private:
         int i;
 
+    public:
+        my_task(int i) : i(i) {}
+        
         void run() {
             cout << "Hello from thread, i = " << i << endl;
         }
-
-    public:
-        my_task(int i) : i(i) {}
 };
 
 int main() {
