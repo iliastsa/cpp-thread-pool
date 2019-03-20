@@ -28,6 +28,9 @@ class thread_pool {
                 pthread_mutex_t queue_rwlock;
                 pthread_cond_t  queue_available;
 
+                // Empty queue synchronization;
+                pthread_cond_t  queue_empty;
+
             public:
                 task_queue();
                 ~task_queue();
@@ -38,6 +41,7 @@ class thread_pool {
                 void unlock();
                 void wait();
                 void broadcast();
+                void broadcast_queue_empty();
 
                 void insert(task* task);
                 task* next();
@@ -56,12 +60,15 @@ class thread_pool {
         ~thread_pool();
 
         void add_task(task* task);
+        void wait_all();
 };
 
 thread_pool::task_queue::task_queue() : head(nullptr), tail(nullptr), n_tasks(0) {
     // TODO: Error checking
     pthread_cond_init(&queue_available, NULL);
     pthread_mutex_init(&queue_rwlock, NULL);
+
+    pthread_cond_init(&queue_empty, NULL);
 };
 
 thread_pool::task* thread_pool::task_queue::next() {
@@ -122,6 +129,7 @@ void thread_pool::task_queue::broadcast() {
 thread_pool::task_queue::~task_queue(){
     pthread_mutex_destroy(&queue_rwlock);
     pthread_cond_destroy(&queue_available);
+    pthread_cond_destroy(&queue_empty);
 
     while (head != nullptr) {
         task_queue_node* next = head->next;
@@ -172,6 +180,9 @@ void* thread_pool::thread_run(void *t_pool) {
 
         pool->active--;
 
+        if (pool->active == 0 && pool->task_queue.n_tasks == 0)
+            pool->task_queue.broadcast();
+
         pool->task_queue.unlock();
     }
 
@@ -180,6 +191,19 @@ void* thread_pool::thread_run(void *t_pool) {
     pthread_exit(NULL);
 
     return NULL;
+}
+
+void thread_pool::task_queue::broadcast_queue_empty() {
+    pthread_cond_broadcast(&queue_empty);
+}
+
+void thread_pool::wait_all() {
+    task_queue.lock();
+
+    while (task_queue.n_tasks != 0 || active != 0)
+        task_queue.wait();
+
+    task_queue.unlock();
 }
 
 thread_pool::~thread_pool() {
