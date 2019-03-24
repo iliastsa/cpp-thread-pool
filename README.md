@@ -1,8 +1,10 @@
 # C++ thread pool
-A simple, header-only thread pool implementation in C++
+A simple thread pool implementation in C++
 
 # Getting Started
-To use the thread pool in your project, you simply include the header in your project.
+To use the thread pool in your project, you simply include the header where it's needed and add the .cpp 
+implentation file in your compilation. Make sure that the header file is visible from the .cpp file. The 
+preferred way of doing this is using the -I option of gcc/g++.
 
 You also have to add the pthread library during the linking step, since the thread pool uses POSIX threads.
 
